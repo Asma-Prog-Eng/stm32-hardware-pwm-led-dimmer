@@ -1,0 +1,9 @@
+../Core/Src/main_app.c:60:5:main	5
+../Core/Src/main_app.c:139:6:SYSCLK_Config	10
+../Core/Src/main_app.c:274:6:TIMER2_Init	2
+../Core/Src/main_app.c:290:6:TIMER3_Init	3
+../Core/Src/main_app.c:325:6:Print_Freq	1
+../Core/Src/main_app.c:339:6:UART2_Init	2
+../Core/Src/main_app.c:363:6:HAL_TIM_IC_CaptureCallback	6
+../Core/Src/main_app.c:396:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main_app.c:410:6:Error_handler	1
