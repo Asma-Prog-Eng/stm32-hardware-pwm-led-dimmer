@@ -54,3 +54,7 @@ while(1) {
 * Hook up a digital logic analyzer channel to pin **PA0** and attach the ground probe to **GND**.
 * Set your analyzer sampling rate to at least **10 MS/s**.
 * You will capture a stable **1,083.33 Hz square wave** where the pulse width dynamically widens by 50-tick steps every second during the fade-up phase, and shrinks during the fade-down phase.
+<img width="1872" height="282" alt="image" src="https://github.com/user-attachments/assets/86d9c2d1-c38e-4939-a9d5-29759b6e896d" />
+<img width="1872" height="220" alt="image" src="https://github.com/user-attachments/assets/7d700cc2-3525-4f44-aab6-c8152555dc8c" />
+<img width="1865" height="207" alt="image" src="https://github.com/user-attachments/assets/a22ad055-1b86-4925-b353-4a8c9ce9f363" />
+
