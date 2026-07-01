@@ -9,5 +9,4 @@
 #define INC_MSP_H_
 
 void HAL_MspInit(void);
-void HAL_UART_MspInit(UART_HandleTypeDef *huart) ;
 #endif /* INC_MSP_H_ */

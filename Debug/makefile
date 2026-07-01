@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := stm32-multi-channel-waveform-generator
+BUILD_ARTIFACT_NAME := stm32-LED_Brightness_Control
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-stm32-multi-channel-waveform-generator.elf \
+stm32-LED_Brightness_Control.elf \
 
 MAP_FILES += \
-stm32-multi-channel-waveform-generator.map \
+stm32-LED_Brightness_Control.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-stm32-multi-channel-waveform-generator.list \
+stm32-LED_Brightness_Control.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: stm32-multi-channel-waveform-generator.elf secondary-outputs
+main-build: stm32-LED_Brightness_Control.elf secondary-outputs
 
 # Tool invocations
-stm32-multi-channel-waveform-generator.elf stm32-multi-channel-waveform-generator.map: $(OBJS) $(USER_OBJS) C:\Users\asmae\OneDrive\Bureau\MCU2_Udemy_Course\my_workspace\MasteringMCU2_WS\stm32-multi-channel-waveform-generator\STM32F103RBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "stm32-multi-channel-waveform-generator.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\asmae\OneDrive\Bureau\MCU2_Udemy_Course\my_workspace\MasteringMCU2_WS\stm32-multi-channel-waveform-generator\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32-multi-channel-waveform-generator.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+stm32-LED_Brightness_Control.elf stm32-LED_Brightness_Control.map: $(OBJS) $(USER_OBJS) C:\Users\asmae\OneDrive\Bureau\MCU2_Udemy_Course\my_workspace\MasteringMCU2_WS\stm32-LED_Brightness_Control\STM32F103RBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "stm32-LED_Brightness_Control.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\asmae\OneDrive\Bureau\MCU2_Udemy_Course\my_workspace\MasteringMCU2_WS\stm32-LED_Brightness_Control\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32-LED_Brightness_Control.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-stm32-multi-channel-waveform-generator.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "stm32-multi-channel-waveform-generator.list"
+stm32-LED_Brightness_Control.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "stm32-LED_Brightness_Control.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) default.size.stdout stm32-multi-channel-waveform-generator.elf stm32-multi-channel-waveform-generator.list stm32-multi-channel-waveform-generator.map
+	-$(RM) default.size.stdout stm32-LED_Brightness_Control.elf stm32-LED_Brightness_Control.list stm32-LED_Brightness_Control.map
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

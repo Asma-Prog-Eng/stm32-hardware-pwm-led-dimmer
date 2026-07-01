@@ -8,10 +8,10 @@
 #ifndef INC_MAIN_APP_H_
 #define INC_MAIN_APP_H_
 
-
-#define SYS_CLOCK_FREQ_48MHZ 48
-
 void Error_handler(void);
-void SYSCLK_Config(void);
+void SYSCLK_Config_HSE(void);
 void TIMER2_Init(void);
+void Print_Freq(void);
+void UART2_Init(void);
+
 #endif /* INC_MAIN_APP_H_ */

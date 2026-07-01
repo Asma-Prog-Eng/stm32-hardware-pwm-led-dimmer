@@ -1,48 +1,37 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Concurrent Multi-Frequency Waveform Generation via
-  * Dynamic Timer Output Compare & AFIO Remapping
+  * @brief          : Hardware PWM LED Fading Engine via Clock-Scaled Duty Modulation
   ******************************************************************************
   * @attention
   *
-  * This firmware demonstrates advanced hardware instrumentation principles on the
-  * STM32F103 microcontroller, utilizing a single 16-bit timer (TIM2) to generate
-  * up to four completely independent, concurrent square wave frequencies.
+  * This application demonstrates advanced hardware peripheral scaling on an ARM
+  * Cortex-M3 (STM32F103RB) to drive a 1.08 kHz PWM LED breathing animation cycle.
   *
   * ============================================================================
-  * CLOCK & TIMEBASE CONFIGURATION
+  * SYSTEM CLOCK TREE & TIMER TIMEBASE MATH
   * ============================================================================
-  * - System Clock (SYSCLK)      = 52 MHz (Via PLL, sourcing HSI divided by 2)
-  * - AHB Bus Prescaler          = 1 (52 MHz)
-  * - APB1 Peripheral Prescaler  = 4 (13 MHz Clock / 26 MHz Timer Base Clock)
+  * - System Clock (SYSCLK)      = 52 MHz (Via PLL)
+  * - Timer 2 Base Clock         = 26 MHz
+  * - Timer Prescaler            = 49 (Yields a internal count rate of 520 kHz)
+  * - Timer Period (ARR)         = 479 (480-1 counts)
   *
-  * *Note:* Due to hardware design rules on the APB1 bus, when the prescaler is not 1,
-  * a hardware x2 multiplier is applied to the timer clocks. Consequently, TIM2
-  * runs on a dedicated **26 MHz internal clock timebase**.
-  *
-  * ============================================================================
-  * HARDWARE PIN SCHEDULING & AFIO REMAPPING (PARTIAL REMAP 2)
-  * ============================================================================
-  * To prevent pin contention with USART1 (TX/RX pins on PA2/PA3), an Alternate
-  * Function I/O (AFIO) partial remapping strategy is explicitly applied:
-  *
-  * - TIM2_CH1  ->  Pin PA0 (Output Compare Toggle Mode)
-  * - TIM2_CH2  ->  Pin PA1 (Output Compare Toggle Mode)
-  * - TIM2_CH3  ->  Pin PB10 (Output Compare Toggle Mode)
-  * - TIM2_CH4  ->  Pin PB11 (Output Compare Toggle Mode)
+  * *Resulting PWM Frequency:* 520,000 Hz / 480 counts = 1,083.33 Hz (Flicker-Free)
   *
   * ============================================================================
-  * SOFTWARE TIMING MECHANISM (DYNAMIC PULSE SHIFTING)
+  * ALGORITHMIC CONTROL MECHANISM
   * ============================================================================
-  * The master counter register (`TIM2->CNT`) is configured to run continuously from
-  * 0 to 0xFFFF without resetting (`htimer2.Init.Period = 0xFFFF`).
-  * * When a channel's comparison register (`TIM2->CCRx`) matches the counter:
-  * 1. The micro's internal hardware automatically toggles the physical GPIO pin.
-  * 2. An interrupt fires (`HAL_TIM_OC_DelayElapsedCallback`).
-  * 3. The ISR calculates the target for the *next* edge by reading the current match
-  * point and sliding it forward using the low-level `__HAL_TIM_SET_COMPARE` macro.
-  * 4. 16-bit unsigned overflow is handled transparently by the CPU architecture.
+  * The main execution thread uses a dual-nested blocking state layout inside the
+  * primary `while(1)` super-loop to smoothly step the luminance level:
+  *
+  * 1. FADE UP LOOP: Increments the `brightness` counter by 50 ticks every 1000ms
+  * until it reaches the 479 limit (~10 seconds total ramp-up).
+  * 2. FADE DOWN LOOP: Decrements the `brightness` counter by 50 ticks every 1000ms
+  * back down to zero (~10 seconds total ramp-down).
+  *
+  * - **Zero-Interrupt Execution:** Pin switching runs entirely in hardware layout
+  * logic (`TIM_OCMODE_PWM1`). The CPU only modifies the active Duty Cycle values
+  * by writing directly to the compare register via `__HAL_TIM_SET_COMPARE`.
   *
   ******************************************************************************
   */
@@ -65,24 +54,16 @@ RCC_ClkInitTypeDef clk_init;
 TIM_HandleTypeDef htimer2;
 
 
-uint32_t pulse1_value = 24000;//26000; // to produce 500Hz
-
-uint32_t pulse2_value = 12000;//13000; // to produce 1KHz
-
-uint32_t pulse3_value = 6000; // to produce 2KHz
-
-uint32_t pulse4_value = 3000; // to produce 4KHz
-
-uint32_t ccr_content;
-
 
 int main(void){
+
+	uint16_t brightness = 0;
 
 	// HAL library inits.
 	HAL_Init();
 
 	// SYSCLK configuration
-	SYSCLK_Config();
+	SYSCLK_Config_HSE();
 
 
 	// Timer 2 inits.
@@ -90,29 +71,29 @@ int main(void){
 	TIMER2_Init() ;
 
 
-	// start timer 2 in interrupt mode
-	if ( HAL_TIM_OC_Start_IT(&htimer2,TIM_CHANNEL_1) != HAL_OK) {
+	// start timer 2 in PWM mode
+	if (HAL_TIM_PWM_Start(&htimer2,TIM_CHANNEL_1) != HAL_OK) {
 
 		Error_handler();
 	}
 
-	if ( HAL_TIM_OC_Start_IT(&htimer2,TIM_CHANNEL_2) != HAL_OK) {
+	while(1) {
 
-		Error_handler();
+
+		while (brightness < htimer2.Init.Period) {
+
+			brightness += 50;
+			__HAL_TIM_SET_COMPARE(&htimer2, TIM_CHANNEL_1 ,brightness);
+			HAL_Delay(1000);
+		}
+
+		while (brightness > 0) {
+
+			brightness -= 50;
+			__HAL_TIM_SET_COMPARE(&htimer2, TIM_CHANNEL_1 ,brightness);
+			HAL_Delay(1000);
+		}
 	}
-
-	if ( HAL_TIM_OC_Start_IT(&htimer2,TIM_CHANNEL_3) != HAL_OK) {
-
-		Error_handler();
-	}
-
-	if ( HAL_TIM_OC_Start_IT(&htimer2,TIM_CHANNEL_4) != HAL_OK) {
-
-		Error_handler();
-	}
-
-
-	while(1) ;
 
 
     return 0 ;
@@ -120,7 +101,7 @@ int main(void){
 }
 
 
-void SYSCLK_Config(void) {
+void SYSCLK_Config_HSE(void) {
 
 	// 1. Enable HSI SYSCLK and configure it as source clock
 
@@ -144,9 +125,6 @@ void SYSCLK_Config(void) {
 
 
 		clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK ;
-
-		osc_init.PLL.PLLMUL =  RCC_PLL_MUL9;
-
 
 		osc_init.PLL.PLLMUL =  RCC_PLL_MUL6;
 
@@ -183,62 +161,37 @@ void SYSCLK_Config(void) {
 
 void TIMER2_Init(void) {
 
-	TIM_OC_InitTypeDef tim2OC_init = {0};
+	TIM_OC_InitTypeDef tim2PWM_init;
 
 	// initialize the output compare time base unit
 
 	htimer2.Instance = TIM2;
-	htimer2.Init.Prescaler = 0;
-	htimer2.Init.Period = 0xFFFF;
-	if (HAL_TIM_OC_Init(&htimer2)!= HAL_OK )
+	htimer2.Init.Prescaler = 49;
+	htimer2.Init.Period = 480-1;
+	if (HAL_TIM_PWM_Init(&htimer2)!= HAL_OK )
 	{
 		Error_handler();
 	}
 
+	memset(&tim2PWM_init , 0, sizeof(tim2PWM_init));
 	// --- Shared Channel Hardware Configuration Parameters ---
 
-	tim2OC_init.OCMode = TIM_OCMODE_TOGGLE;
-	tim2OC_init.OCPolarity =  TIM_OCPOLARITY_HIGH;
-	tim2OC_init.Pulse = pulse1_value ;
+	tim2PWM_init.OCMode = TIM_OCMODE_PWM1 ;
+	tim2PWM_init.OCPolarity =  TIM_OCPOLARITY_HIGH;
+	tim2PWM_init.Pulse = 0;
+	//tim2PWM_init.Pulse = (htimer2.Init.Period * 25)/100 ;
 
 	// configure output compare channel 1
 
-	if(HAL_TIM_OC_ConfigChannel(&htimer2, &tim2OC_init,TIM_CHANNEL_1) != HAL_OK) {
+	if(HAL_TIM_PWM_ConfigChannel(&htimer2, &tim2PWM_init,TIM_CHANNEL_1) != HAL_OK) {
 
 		 Error_handler();
 	}
 
-	tim2OC_init.Pulse = pulse2_value ;
 
-	// configure output compare channel 2
-
-	if(HAL_TIM_OC_ConfigChannel(&htimer2, &tim2OC_init,TIM_CHANNEL_2) != HAL_OK) {
-
-			 Error_handler();
-		}
-
-
-	tim2OC_init.Pulse = pulse3_value ;
-	// configure output compare channel 3
-
-	if(HAL_TIM_OC_ConfigChannel(&htimer2, &tim2OC_init,TIM_CHANNEL_3) != HAL_OK) {
-
-			 Error_handler();
-		}
-
-
-	tim2OC_init.Pulse = pulse4_value ;
-	// configure output compare channel 4
-
-	if(HAL_TIM_OC_ConfigChannel(&htimer2, &tim2OC_init,TIM_CHANNEL_4) != HAL_OK) {
-
-			 Error_handler();
-		}
 
 
 }
-
-
 
 void Error_handler(void){
 
@@ -249,35 +202,3 @@ void Error_handler(void){
 }
 
 
-void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim){
-
-	/* TIM2_CH1 toggling with frequency = 500Hz (Toggle every 24,000 ticks)*/
-	if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
-
-		ccr_content = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1);
-		__HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1 ,(ccr_content + pulse1_value) & 0xFFFF);
-
-	}
-
-	/* TIM2_CH2 toggling with frequency = 1KHz (Toggle every 12,000 ticks)*/
-
-	if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
-		ccr_content = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_2);
-		__HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2 ,(ccr_content + pulse2_value) & 0xFFFF);
-	}
-
-	/* TIM2_CH3 toggling with frequency = 2KHz (Toggle every 6,000 ticks) */
-
-	if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3) {
-		ccr_content = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_3);
-		__HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3 ,(ccr_content + pulse3_value) & 0xFFFF);
-	}
-
-	/* TIM2_CH4 toggling with frequency = 4KHz (Toggle every 3,000 ticks) */
-
-	if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) {
-		ccr_content = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4);
-		__HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4 ,(ccr_content + pulse4_value) & 0xFFFF);
-	}
-
-}

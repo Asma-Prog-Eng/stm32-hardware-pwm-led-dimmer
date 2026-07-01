@@ -62,7 +62,7 @@ void HAL_MspInit(void)
 
 // low level inits. of timer 2
 
-void HAL_TIM_OC_MspInit(TIM_HandleTypeDef  *htim) {
+void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef  *htim) {
 
 	 GPIO_InitTypeDef tim2OC_ch_gpios;
 
@@ -95,7 +95,5 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef  *htim) {
 	 HAL_NVIC_SetPriority(TIM2_IRQn, 10, 0);
 
 }
-
-
 
 
